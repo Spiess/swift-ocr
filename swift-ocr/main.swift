@@ -1,4 +1,5 @@
 import Foundation
+import Logging
 import ArgumentParser
 import AppKit
 import Vision
@@ -23,8 +24,10 @@ struct TextExtractCLI: ParsableCommand {
     var outputDirectory: String
     
     func run() throws {
-        print("Input directory: \(inputDirectory)")
-        print("Output directory: \(outputDirectory)")
+        let logger = Logger(label: "TextExtractCLI")
+        
+        logger.info("Input directory: \(inputDirectory)")
+        logger.info("Output directory: \(outputDirectory)")
         
         let fm = FileManager.default
         
@@ -37,10 +40,10 @@ struct TextExtractCLI: ParsableCommand {
         }
         
         if (!fm.fileExists(atPath: outputDirectory, isDirectory: &isDir)) {
-            print("Creating output directory")
+            logger.info("Creating output directory")
             try fm.createDirectory(atPath: outputDirectory, withIntermediateDirectories: true)
         } else if (isDir.boolValue) {
-            print("Output directory already exists")
+            logger.info("Output directory already exists")
         } else {
             throw(Errors.couldNotCreateOutput)
         }
@@ -53,7 +56,7 @@ struct TextExtractCLI: ParsableCommand {
             var detectionsDict: [String: [[String: Any]]] = [:]
             
             let path = NSString.path(withComponents: [inputDirectory, imPath])
-            print("Processing \"\(path)\"")
+            logger.info("Processing \"\(path)\"")
             guard let im = NSImage(byReferencingFile:path) else {
                 throw(Errors.invalidImage)
             }
