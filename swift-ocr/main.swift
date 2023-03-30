@@ -38,6 +38,7 @@ struct TextExtractCLI: ParsableCommand {
         
         if (!fm.fileExists(atPath: outputDirectory, isDirectory: &isDir)) {
             print("Creating output directory")
+            try fm.createDirectory(atPath: outputDirectory, withIntermediateDirectories: true)
         } else if (isDir.boolValue) {
             print("Output directory already exists")
         } else {
@@ -48,9 +49,9 @@ struct TextExtractCLI: ParsableCommand {
         
         let images = files.filter { $0.hasSuffix(".jpg") || $0.hasSuffix(".png") }
         
-        var detectionsDict: [String: [[String: Any]]] = [:]
-        
         for imPath in images {
+            var detectionsDict: [String: [[String: Any]]] = [:]
+            
             let path = NSString.path(withComponents: [inputDirectory, imPath])
             print("Processing \"\(path)\"")
             guard let im = NSImage(byReferencingFile:path) else {
@@ -67,21 +68,32 @@ struct TextExtractCLI: ParsableCommand {
             case .failure(let error):
                 throw(error)
             case .success(let detections):
-                detectionsDict[imPath] = detections.map({ (text, rect, confidence) in
-                    [
+                let width = Float(cgImage.width)
+                let height = Float(cgImage.height)
+                detectionsDict["detections"] = detections.map({ (text, rect, confidence) in
+                    let x = Float(rect.minX)
+                    let y = Float(rect.minY)
+                    let w = Float(rect.maxX - rect.minX)
+                    let h = Float(rect.maxY - rect.minY)
+                    return [
                         "text": text,
-                        "minX": rect.minX,
-                        "maxX": rect.maxX,
-                        "minY": rect.minY,
-                        "maxY": rect.maxY,
+                        "x": x,
+                        "y": y,
+                        "w": w,
+                        "h": h,
+                        "relX": x / width,
+                        "relY": y / height,
+                        "relW": w / width,
+                        "relH": h / height,
                         "confidence": confidence
                     ]
                 })
+                let jsonData = try JSONSerialization.data(withJSONObject: detectionsDict, options: .prettyPrinted)
+                let jsonString = String(bytes: jsonData, encoding: .utf8)!
+                let outPath = NSString.path(withComponents: [outputDirectory, imPath + ".txt"])
+                try jsonString.write(toFile: outPath, atomically: true, encoding: .utf8)
             }
         }
-        
-        let jsonData = try JSONSerialization.data(withJSONObject: detectionsDict, options: .prettyPrinted)
-        print(String(bytes: jsonData, encoding: .utf8)!)
     }
     
     func ProcessImage(image: CGImage) -> Result<[(String, CGRect, VNConfidence)], Error> {
