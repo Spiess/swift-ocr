@@ -15,7 +15,7 @@ public enum Errors: Error {
 }
 
 @available(macOS 10.15, *)
-struct TextExtractCLI: ParsableCommand {
+struct SwiftOCR: ParsableCommand {
     
     @Argument(help:"The path to a directory of image files to extract text from")
     var inputDirectory: String
@@ -136,7 +136,7 @@ struct TextExtractCLI: ParsableCommand {
 }
 
 if #available(macOS 10.15, *) {
-    TextExtractCLI.main()
+    SwiftOCR.main()
 } else {
     throw(Errors.unsupportedOS)
 }
